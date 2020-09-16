@@ -32,21 +32,20 @@ func (SessionID) CaddyModule() caddy.ModuleInfo {
 func (m SessionID) ServeHTTP(w http.ResponseWriter, r *http.Request, next caddyhttp.Handler) error {
 	repl := r.Context().Value(caddy.ReplacerCtxKey).(*caddy.Replacer)
 
-	// generate a new sessionid..
-	uid := strings.ReplaceAll(uuid.New().String(), "-", "")
-	repl.Set("http.session_id", uid)
-
 	c, err := r.Cookie("x-caddy-sessionid")
 	if err != nil {
+		// generate a new sessionid..
+		uid := strings.ReplaceAll(uuid.New().String(), "-", "")
 		c = &http.Cookie{
-			Name:  "x-caddy-sessionid",
-			Value: uid,
-			//Domain: "stackdomain..",
-			//Path:  "/",
+			Name:   "x-caddy-sessionid",
+			Value:  uid,
+			Domain: "loc.alho.st", // Need to figure out how to share the same cookie, or to generate it so it can be used for a lookup
+			Path:   "/",
 			//Expires: ,
 		}
 	}
 	http.SetCookie(w, c)
+	repl.Set("http.session_id", c.Value)
 
 	return next.ServeHTTP(w, r)
 }
