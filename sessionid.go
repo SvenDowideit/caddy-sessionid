@@ -14,6 +14,8 @@ import (
 func init() {
 	caddy.RegisterModule(SessionID{})
 	httpcaddyfile.RegisterHandlerDirective("session_id", parseCaddyfile)
+
+	roles = make(map[string]string)
 }
 
 // SessionID implements an HTTP handler that writes a
@@ -21,6 +23,8 @@ func init() {
 type SessionID struct {
 	CookieDomain string
 }
+
+var roles map[string]string
 
 // CaddyModule returns the Caddy module information.
 func (SessionID) CaddyModule() caddy.ModuleInfo {
@@ -54,6 +58,19 @@ func (m SessionID) ServeHTTP(w http.ResponseWriter, r *http.Request, next caddyh
 	}
 	http.SetCookie(w, c)
 	repl.Set("http.session_id", c.Value)
+
+	// fake up some role data
+	role, ok := roles[c.Value]
+	if !ok {
+		role = "anon"
+		roles[c.Value] = role
+	}
+	// allow role to be set using urlparam
+	setrole := r.URL.Query().Get("setrole")
+	if setrole != "" {
+		roles[c.Value] = setrole
+	}
+	repl.Set("http.session_role", role)
 
 	return next.ServeHTTP(w, r)
 }
