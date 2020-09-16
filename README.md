@@ -10,6 +10,8 @@ The Session ID would ideally be random, but to enable multiple edge requests, I 
 
 Usage with a Caddyfile is fairly straightforward. Simply add the `session_id` directive to a handler block, and the `{http.session_id}` template will be set.
 
+Will also add a Cookie named `x-caddy-sessionid` for auto-session tracking.
+
 If you wish to use the directive in a top level block, you must explicitly define the order.
 
 ```
@@ -38,7 +40,7 @@ The following example Caddyfile sets the `x-session-id` header for all responses
 }
 
 localhost {
-  session_id
+  session_id <optional cookie domain>
 
   header * x-session-id "{http.session_id}"
   respond * "{http.session_id}" 200

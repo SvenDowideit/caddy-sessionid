@@ -1,7 +1,6 @@
 package sessionid
 
 import (
-	"log"
 	"net/http"
 	"strings"
 
@@ -39,7 +38,6 @@ func (m SessionID) ServeHTTP(w http.ResponseWriter, r *http.Request, next caddyh
 	if err != nil {
 		// Get the domain to use from the session_id setting in the Caddyfile
 		CookieDomain := m.CookieDomain
-		log.Printf("[INFO] cookiedomain: %s, request: %s\n", CookieDomain, r.Host)
 		if !strings.HasSuffix(r.Host, CookieDomain) {
 			CookieDomain = r.Host
 		}
@@ -63,17 +61,19 @@ func (m SessionID) ServeHTTP(w http.ResponseWriter, r *http.Request, next caddyh
 // UnmarshalCaddyfile - session_id <cookiedomain>
 func (m *SessionID) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
 	for d.Next() {
-		if !d.Args(&m.CookieDomain) {
-			// not enough args
-			return d.ArgErr()
+		// if !d.Args(&m.CookieDomain) {
+		// 	// not enough args
+		// 	return d.ArgErr()
+		// }
+		if d.NextArg() {
+			// optional arg
+			m.CookieDomain = d.Val()
 		}
 		if d.NextArg() {
 			// too many args
 			return d.ArgErr()
 		}
 	}
-	log.Printf("[INFO] unmarshal session_id: %s\n", m.CookieDomain)
-
 	return nil
 }
 
