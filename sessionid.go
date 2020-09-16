@@ -34,12 +34,20 @@ func (m SessionID) ServeHTTP(w http.ResponseWriter, r *http.Request, next caddyh
 
 	c, err := r.Cookie("x-caddy-sessionid")
 	if err != nil {
+		STACKDOMAIN, ok := repl.GetString("env.STACKDOMAIN")
+		if !ok {
+			STACKDOMAIN = "ona.im"
+		}
+		if !strings.HasSuffix(r.Host, STACKDOMAIN) {
+			STACKDOMAIN = r.Host
+		}
+
 		// generate a new sessionid..
 		uid := strings.ReplaceAll(uuid.New().String(), "-", "")
 		c = &http.Cookie{
 			Name:   "x-caddy-sessionid",
 			Value:  uid,
-			Domain: "loc.alho.st", // Need to figure out how to share the same cookie, or to generate it so it can be used for a lookup
+			Domain: STACKDOMAIN, // Need to figure out how to share the same cookie, or to generate it so it can be used for a lookup
 			Path:   "/",
 			//Expires: ,
 		}
