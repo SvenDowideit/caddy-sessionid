@@ -18,7 +18,9 @@ func init() {
 
 // SessionID implements an HTTP handler that writes a
 // unique request ID to response headers.
-type SessionID struct{}
+type SessionID struct {
+	CookieDomain string
+}
 
 // CaddyModule returns the Caddy module information.
 func (SessionID) CaddyModule() caddy.ModuleInfo {
@@ -34,12 +36,10 @@ func (m SessionID) ServeHTTP(w http.ResponseWriter, r *http.Request, next caddyh
 
 	c, err := r.Cookie("x-caddy-sessionid")
 	if err != nil {
-		STACKDOMAIN, ok := repl.GetString("env.STACKDOMAIN")
-		if !ok {
-			STACKDOMAIN = "ona.im"
-		}
-		if !strings.HasSuffix(r.Host, STACKDOMAIN) {
-			STACKDOMAIN = r.Host
+		// Get the domain to use from the session_id setting in the Caddyfile
+		CookieDomain := m.CookieDomain
+		if !strings.HasSuffix(r.Host, CookieDomain) {
+			CookieDomain = r.Host
 		}
 
 		// generate a new sessionid..
@@ -47,7 +47,7 @@ func (m SessionID) ServeHTTP(w http.ResponseWriter, r *http.Request, next caddyh
 		c = &http.Cookie{
 			Name:   "x-caddy-sessionid",
 			Value:  uid,
-			Domain: STACKDOMAIN, // Need to figure out how to share the same cookie, or to generate it so it can be used for a lookup
+			Domain: CookieDomain, // Need to figure out how to share the same cookie, or to generate it so it can be used for a lookup
 			Path:   "/",
 			//Expires: ,
 		}
@@ -58,8 +58,18 @@ func (m SessionID) ServeHTTP(w http.ResponseWriter, r *http.Request, next caddyh
 	return next.ServeHTTP(w, r)
 }
 
-// UnmarshalCaddyfile - this is a no-op
+// UnmarshalCaddyfile - session_id <cookiedomain>
 func (m *SessionID) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
+	for d.Next() {
+		if !d.Args(&m.CookieDomain) {
+			// not enough args
+			return d.ArgErr()
+		}
+		if d.NextArg() {
+			// too many args
+			return d.ArgErr()
+		}
+	}
 	return nil
 }
 
