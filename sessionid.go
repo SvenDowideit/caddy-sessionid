@@ -70,7 +70,7 @@ func (m SessionID) ServeHTTP(w http.ResponseWriter, r *http.Request, next caddyh
 	if setrole != "" {
 		roles[c.Value] = setrole
 	}
-	repl.Set("http.session_role", role)
+	repl.Set("http.session_role", roles[c.Value])
 
 	return next.ServeHTTP(w, r)
 }
