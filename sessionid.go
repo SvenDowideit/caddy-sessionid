@@ -15,7 +15,7 @@ func init() {
 	caddy.RegisterModule(SessionID{})
 	httpcaddyfile.RegisterHandlerDirective("session_id", parseCaddyfile)
 
-	roles = make(map[string]string)
+	sessionInfo = make(map[string]info)
 }
 
 // SessionID implements an HTTP handler that writes a
@@ -24,7 +24,13 @@ type SessionID struct {
 	CookieDomain string
 }
 
-var roles map[string]string
+type info struct {
+	name  string
+	email string
+	role  string
+}
+
+var sessionInfo map[string]info
 
 // CaddyModule returns the Caddy module information.
 func (SessionID) CaddyModule() caddy.ModuleInfo {
@@ -60,17 +66,35 @@ func (m SessionID) ServeHTTP(w http.ResponseWriter, r *http.Request, next caddyh
 	repl.Set("http.session_id", c.Value)
 
 	// fake up some role data
-	role, ok := roles[c.Value]
+	userInfo, ok := sessionInfo[c.Value]
 	if !ok {
-		role = "anon"
-		roles[c.Value] = role
+		userInfo = info{
+			role: "anon",
+		}
+		sessionInfo[c.Value] = userInfo
 	}
 	// allow role to be set using urlparam
 	setrole := r.URL.Query().Get("setrole")
 	if setrole != "" {
-		roles[c.Value] = setrole
+		userInfo.role = setrole
+		sessionInfo[c.Value] = userInfo
 	}
-	repl.Set("http.session_role", roles[c.Value])
+	// allow name to be set using urlparam
+	setname := r.URL.Query().Get("setname")
+	if setname != "" {
+		userInfo.name = setname
+		sessionInfo[c.Value] = userInfo
+	}
+	// allow email to be set using urlparam
+	setemail := r.URL.Query().Get("setemail")
+	if setemail != "" {
+		userInfo.email = setemail
+		sessionInfo[c.Value] = userInfo
+	}
+
+	repl.Set("http.session_role", sessionInfo[c.Value].role)
+	repl.Set("http.session_name", sessionInfo[c.Value].name)
+	repl.Set("http.session_email", sessionInfo[c.Value].email)
 
 	return next.ServeHTTP(w, r)
 }
